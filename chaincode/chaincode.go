@@ -69,3 +69,24 @@ func (s *SmartContract) GetCars(ctx contractapi.TransactionContextInterface) ([]
 
 	return cars, nil
 }
+
+// GetCarsByOwner
+func (s *SmartContract) GetCarsByOwner(ctx contractapi.TransactionContextInterface, owner string) ([]*CarAsset, error) {
+	cars, err := s.GetCars(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(cars) == 0 {
+		return []*CarAsset{}, nil
+	}
+
+	var ownerCars []*CarAsset
+	for _, car := range cars {
+		if car.Owner == owner {
+			ownerCars = append(ownerCars, car)
+		}
+	}
+
+	return ownerCars, nil
+}

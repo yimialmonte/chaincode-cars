@@ -73,3 +73,35 @@ func TestGetCars(t *testing.T) {
 	assert.EqualError(t, err, "error getting cars")
 	assert.Nil(t, cars)
 }
+
+func TestGetCarsByOwner(t *testing.T) {
+	car := CarAsset{Brand: "Toyota", ID: "123", Owner: "Max"}
+	bytes, err := json.Marshal(car)
+	require.NoError(t, err)
+
+	it := &mocks.StateQueryIterator{}
+	it.HasNextReturnsOnCall(0, true)
+	it.HasNextReturnsOnCall(1, false)
+	it.NextReturns(&queryresult.KV{Value: bytes}, nil)
+
+	stub := &mocks.ChaincodeStub{}
+	tctx := &mocks.TransactionContext{}
+	tctx.GetStubReturns(stub)
+
+	stub.GetStateByRangeReturns(it, nil)
+	sc := &SmartContract{}
+	cars, err := sc.GetCarsByOwner(tctx, "Max")
+	assert.Nil(t, err)
+	assert.Equal(t, []*CarAsset{&car}, cars)
+
+	cars, err = sc.GetCarsByOwner(tctx, "Peter")
+	assert.Nil(t, err)
+	assert.Equal(t, []*CarAsset{}, cars)
+
+	it.HasNextReturns(true)
+	it.NextReturns(nil, fmt.Errorf("error getting next car"))
+	cars, err = sc.GetCarsByOwner(tctx, "Juan")
+	assert.EqualError(t, err, "error getting next car")
+	assert.Nil(t, cars)
+
+}
