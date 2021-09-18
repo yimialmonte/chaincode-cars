@@ -130,3 +130,45 @@ func TestGetCar(t *testing.T) {
 	assert.EqualError(t, err, "car does not exist ID: 000")
 	assert.Nil(t, car)
 }
+
+func TestCreateCar(t *testing.T) {
+	stu := &mocks.ChaincodeStub{}
+	tctx := &mocks.TransactionContext{}
+	tctx.GetStubReturns(stu)
+
+	sc := SmartContract{}
+	err := sc.CreateCar(tctx, "", "", "")
+	assert.Nil(t, err)
+
+	stu.GetStateReturns([]byte{}, nil)
+	err = sc.CreateCar(tctx, "00", "0", "")
+	assert.EqualError(t, err, "the car with id 00 already exist")
+
+	stu.GetStateReturns(nil, fmt.Errorf("unable to process"))
+	err = sc.CreateCar(tctx, "00", "", "")
+	assert.EqualError(t, err, "unable to process")
+
+}
+
+func TestExistcar(t *testing.T) {
+	stu := &mocks.ChaincodeStub{}
+	tctx := &mocks.TransactionContext{}
+	tctx.GetStubReturns(stu)
+
+	sc := SmartContract{}
+	_, err := sc.ExistCar(tctx, "")
+	assert.Nil(t, err)
+
+	stu.GetStateReturns([]byte{}, nil)
+	exist, _ := sc.ExistCar(tctx, "")
+	assert.Equal(t, exist, true)
+
+	stu.GetStateReturns(nil, nil)
+	exist, _ = sc.ExistCar(tctx, "")
+	assert.Equal(t, exist, false)
+
+	stu.GetStateReturns(nil, fmt.Errorf("unable to process"))
+	exist, err = sc.ExistCar(tctx, "")
+	assert.EqualError(t, err, "unable to process")
+	assert.Equal(t, exist, false)
+}

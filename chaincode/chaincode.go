@@ -116,3 +116,38 @@ func (s *SmartContract) GetCar(ctx contractapi.TransactionContextInterface, id s
 
 	return &car, nil
 }
+
+// CreateCar ...
+func (s *SmartContract) CreateCar(ctx contractapi.TransactionContextInterface, id, brand, owner string) error {
+	exist, err := s.ExistCar(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if exist {
+		return fmt.Errorf("the car with id %s already exist", id)
+	}
+
+	newCar := CarAsset{
+		Brand: brand,
+		ID:    id,
+		Owner: owner,
+	}
+
+	carJSON, err := json.Marshal(newCar)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, carJSON)
+}
+
+// ExistCar ...
+func (s *SmartContract) ExistCar(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+	carJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, err
+	}
+
+	return carJSON != nil, nil
+}
