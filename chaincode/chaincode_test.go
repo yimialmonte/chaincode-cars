@@ -1,11 +1,14 @@
 package chaincode
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yimialmonte/chaincode-cars/chaincode/mocks"
 )
@@ -37,4 +40,36 @@ func TestInitLedger(t *testing.T) {
 	stu.PutStateReturns(fmt.Errorf("failed initledger"))
 	err = sc.InitLedger(tctx)
 	require.EqualError(t, err, "failed operation, failed initledger")
+}
+
+func TestGetCars(t *testing.T) {
+	car := CarAsset{Brand: "Toyota", ID: "123", Owner: "Max"}
+	bytes, err := json.Marshal(car)
+	require.NoError(t, err)
+
+	it := &mocks.StateQueryIterator{}
+	it.HasNextReturnsOnCall(0, true)
+	it.HasNextReturnsOnCall(1, false)
+	it.NextReturns(&queryresult.KV{Value: bytes}, nil)
+
+	stub := &mocks.ChaincodeStub{}
+	tctx := &mocks.TransactionContext{}
+	tctx.GetStubReturns(stub)
+
+	stub.GetStateByRangeReturns(it, nil)
+	sc := &SmartContract{}
+	cars, err := sc.GetCars(tctx)
+	assert.Nil(t, err)
+	assert.Equal(t, []*CarAsset{&car}, cars)
+
+	it.HasNextReturns(true)
+	it.NextReturns(nil, fmt.Errorf("error getting next car"))
+	cars, err = sc.GetCars(tctx)
+	assert.EqualError(t, err, "error getting next car")
+	assert.Nil(t, cars)
+
+	stub.GetStateByRangeReturns(nil, fmt.Errorf("error getting cars"))
+	cars, err = sc.GetCars(tctx)
+	assert.EqualError(t, err, "error getting cars")
+	assert.Nil(t, cars)
 }

@@ -41,3 +41,31 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 
 	return nil
 }
+
+// GetCars ...
+func (s *SmartContract) GetCars(ctx contractapi.TransactionContextInterface) ([]*CarAsset, error) {
+	res, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	var cars []*CarAsset
+
+	for res.HasNext() {
+		car, err := res.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var carAsset CarAsset
+		err = json.Unmarshal(car.Value, &carAsset)
+		if err != nil {
+			return nil, err
+		}
+
+		cars = append(cars, &carAsset)
+	}
+
+	return cars, nil
+}
