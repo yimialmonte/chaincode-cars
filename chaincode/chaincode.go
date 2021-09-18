@@ -14,8 +14,8 @@ type SmartContract struct {
 
 // CarAsset ...
 type CarAsset struct {
-	Brand          string `json:"brand"`
 	ID             string `json:"id"`
+	Brand          string `json:"brand"`
 	Owner          string `json:"owner"`
 	TransfersCount int    `json:"transfersCount"`
 }
@@ -93,8 +93,42 @@ func (s *SmartContract) GetCarsByOwner(ctx contractapi.TransactionContextInterfa
 
 // TransferCart ...
 func (s *SmartContract) TransferCart(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
+	car, err := s.GetCar(ctx, id)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	if ok, errTran := s.IsAbleToTransfer(car, newOwner); !ok {
+		return errTran
+	}
+
+	car.Owner = newOwner
+	car.TransfersCount++
+
+	carJSON, err := json.Marshal(car)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, carJSON)
+}
+
+// IsAbleToTransfer ...
+func (s *SmartContract) IsAbleToTransfer(car *CarAsset, newOwner string) (bool, error) {
+	if car == nil {
+		return false, fmt.Errorf("unable to process transaction, car does not exit")
+	}
+
+	if car.Owner == newOwner {
+		return false, fmt.Errorf("unable to process transaction, car owner %s is equal to %s", car.Owner, newOwner)
+	}
+
+	totalTransAllwed := 3
+	if car.TransfersCount >= totalTransAllwed {
+		return false, fmt.Errorf("unable to process, total car transaction %d exeed the limit", car.TransfersCount)
+	}
+
+	return true, nil
 }
 
 // GetCar ...

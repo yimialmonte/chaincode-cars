@@ -2,6 +2,7 @@ package chaincode
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -171,4 +172,59 @@ func TestExistcar(t *testing.T) {
 	exist, err = sc.ExistCar(tctx, "")
 	assert.EqualError(t, err, "unable to process")
 	assert.Equal(t, exist, false)
+}
+
+func TestIsAbleToTransfer(t *testing.T) {
+	tests := []struct {
+		car            *CarAsset
+		newOwner       string
+		expectedErr    error
+		expectedResult bool
+	}{
+		{
+			&CarAsset{Owner: "Juan", TransfersCount: 3},
+			"Max",
+			errors.New(fmt.Sprintf("unable to process, total car transaction %d exeed the limit", 3)),
+			false,
+		},
+		{
+			&CarAsset{Owner: "Juan", TransfersCount: 1},
+			"Juan",
+			errors.New(fmt.Sprintf("unable to process transaction, car owner %s is equal to %s", "Juan", "Juan")),
+			false,
+		},
+		{
+			&CarAsset{Owner: "Peter", TransfersCount: 3},
+			"Peter",
+			errors.New(fmt.Sprintf("unable to process transaction, car owner %s is equal to %s", "Peter", "Peter")),
+			false,
+		},
+		{
+			nil,
+			"Peter",
+			errors.New("unable to process transaction, car does not exit"),
+			false,
+		},
+		{
+			&CarAsset{Owner: "Ana", TransfersCount: 1},
+			"Peter",
+			nil,
+			true,
+		},
+		{
+			&CarAsset{Owner: "Mar", TransfersCount: 0},
+			"Jackson",
+			nil,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			sc := SmartContract{}
+			res, err := sc.IsAbleToTransfer(test.car, test.newOwner)
+			assert.Equal(t, test.expectedErr, err)
+			assert.Equal(t, test.expectedResult, res)
+		})
+	}
 }
