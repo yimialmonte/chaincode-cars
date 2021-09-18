@@ -105,3 +105,28 @@ func TestGetCarsByOwner(t *testing.T) {
 	assert.Nil(t, cars)
 
 }
+
+func TestGetCar(t *testing.T) {
+	stu := &mocks.ChaincodeStub{}
+	tctx := &mocks.TransactionContext{}
+	tctx.GetStubReturns(stu)
+
+	expectedCar := CarAsset{ID: "123"}
+	b, err := json.Marshal(expectedCar)
+	assert.Nil(t, err)
+
+	stu.GetStateReturns(b, nil)
+	sc := SmartContract{}
+	car, err := sc.GetCar(tctx, "")
+	assert.Nil(t, err)
+	assert.Equal(t, &expectedCar, car)
+
+	stu.GetStateReturns(nil, fmt.Errorf("connection error"))
+	_, err = sc.GetCar(tctx, "")
+	assert.EqualError(t, err, "error getting car, connection error")
+
+	stu.GetStateReturns(nil, nil)
+	car, err = sc.GetCar(tctx, "000")
+	assert.EqualError(t, err, "car does not exist ID: 000")
+	assert.Nil(t, car)
+}

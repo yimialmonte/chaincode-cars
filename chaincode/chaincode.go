@@ -90,3 +90,29 @@ func (s *SmartContract) GetCarsByOwner(ctx contractapi.TransactionContextInterfa
 
 	return ownerCars, nil
 }
+
+// TransferCart ...
+func (s *SmartContract) TransferCart(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
+
+	return nil
+}
+
+// GetCar ...
+func (s *SmartContract) GetCar(ctx contractapi.TransactionContextInterface, id string) (*CarAsset, error) {
+	carJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return nil, fmt.Errorf("error getting car, %v", err)
+	}
+
+	if carJSON == nil {
+		return nil, fmt.Errorf("car does not exist ID: %s", id)
+	}
+
+	var car CarAsset
+	err = json.Unmarshal(carJSON, &car)
+	if err != nil {
+		return nil, err
+	}
+
+	return &car, nil
+}
