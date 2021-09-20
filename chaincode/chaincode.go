@@ -92,7 +92,7 @@ func (s *SmartContract) GetCarsByOwner(ctx contractapi.TransactionContextInterfa
 }
 
 // TransferCart ...
-func (s *SmartContract) TransferCart(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
+func (s *SmartContract) TransferCart(ctx contractapi.TransactionContextInterface, id, newOwner string) error {
 	car, err := s.GetCar(ctx, id)
 	if err != nil {
 		return err
