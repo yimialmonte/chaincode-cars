@@ -35,125 +35,233 @@ type stateReturn struct {
 }
 
 func TestInitLedger(t *testing.T) {
-	stu := &mocks.ChaincodeStub{}
-	tctx := &mocks.TransactionContext{}
-	tctx.GetStubReturns(stu)
+	tests := []struct {
+		state       stateReturn
+		expectedErr error
+	}{
+		{
+			stateReturn{nil, nil},
+			nil,
+		},
+		{
+			stateReturn{nil, errors.New("error")},
+			errors.New("failed operation, error"),
+		},
+	}
 
-	sc := SmartContract{}
-	err := sc.InitLedger(tctx)
-	require.NoError(t, err)
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			stu := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stu)
 
-	stu.PutStateReturns(fmt.Errorf("failed initledger"))
-	err = sc.InitLedger(tctx)
-	require.EqualError(t, err, "failed operation, failed initledger")
+			sc := SmartContract{}
+			stu.PutStateReturns(test.state.err)
+
+			err := sc.InitLedger(tctx)
+			require.Equal(t, test.expectedErr, err)
+		})
+	}
 }
 
 func TestGetCars(t *testing.T) {
-	car := CarAsset{Brand: "Toyota", ID: "123", Owner: "Max"}
-	bytes, err := json.Marshal(car)
-	require.NoError(t, err)
-
-	it := &mocks.StateQueryIterator{}
-	it.HasNextReturnsOnCall(0, true)
-	it.HasNextReturnsOnCall(1, false)
-	it.NextReturns(&queryresult.KV{Value: bytes}, nil)
-
-	stub := &mocks.ChaincodeStub{}
-	tctx := &mocks.TransactionContext{}
-	tctx.GetStubReturns(stub)
-
-	stub.GetStateByRangeReturns(it, nil)
-	sc := &SmartContract{}
-	cars, err := sc.GetCars(tctx)
+	car := CarAsset{ID: "123", Owner: "Peter", Brand: "Honda"}
+	b, err := json.Marshal(car)
 	assert.Nil(t, err)
-	assert.Equal(t, []*CarAsset{&car}, cars)
 
-	it.HasNextReturns(true)
-	it.NextReturns(nil, fmt.Errorf("error getting next car"))
-	cars, err = sc.GetCars(tctx)
-	assert.EqualError(t, err, "error getting next car")
-	assert.Nil(t, cars)
+	var cars []*CarAsset
 
-	stub.GetStateByRangeReturns(nil, fmt.Errorf("error getting cars"))
-	cars, err = sc.GetCars(tctx)
-	assert.EqualError(t, err, "error getting cars")
-	assert.Nil(t, cars)
+	tests := []struct {
+		state       stateReturn
+		expectedErr error
+		expectedCar []*CarAsset
+	}{
+		{
+			stateReturn{b, nil},
+			nil,
+			[]*CarAsset{&car},
+		},
+		{
+			stateReturn{nil, errors.New("connection failed")},
+			errors.New("connection failed"),
+			cars,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			it := &mocks.StateQueryIterator{}
+			it.HasNextReturnsOnCall(0, true)
+			it.HasNextReturnsOnCall(1, false)
+			it.NextReturns(&queryresult.KV{Value: test.state.state}, nil)
+
+			stub := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stub)
+
+			stub.GetStateByRangeReturns(it, test.state.err)
+			sc := &SmartContract{}
+			cars, err := sc.GetCars(tctx)
+			assert.Equal(t, test.expectedErr, err)
+			assert.Equal(t, test.expectedCar, cars)
+		})
+	}
 }
 
 func TestGetCarsByOwner(t *testing.T) {
-	car := CarAsset{Brand: "Toyota", ID: "123", Owner: "Max"}
-	bytes, err := json.Marshal(car)
-	require.NoError(t, err)
-
-	it := &mocks.StateQueryIterator{}
-	it.HasNextReturnsOnCall(0, true)
-	it.HasNextReturnsOnCall(1, false)
-	it.NextReturns(&queryresult.KV{Value: bytes}, nil)
-
-	stub := &mocks.ChaincodeStub{}
-	tctx := &mocks.TransactionContext{}
-	tctx.GetStubReturns(stub)
-
-	stub.GetStateByRangeReturns(it, nil)
-	sc := &SmartContract{}
-	cars, err := sc.GetCarsByOwner(tctx, "Max")
+	car := CarAsset{ID: "000", Owner: "Max", Brand: "Toyota"}
+	b, err := json.Marshal(car)
 	assert.Nil(t, err)
-	assert.Equal(t, []*CarAsset{&car}, cars)
+	var cars []*CarAsset
+	tests := []struct {
+		owner       string
+		state       stateReturn
+		expectedErr error
+		expectedCar []*CarAsset
+	}{
+		{
+			"Max",
+			stateReturn{b, nil},
+			nil,
+			[]*CarAsset{&car},
+		},
+		{
+			"Juan",
+			stateReturn{b, nil},
+			nil,
+			cars,
+		},
+		{
+			"Juan",
+			stateReturn{nil, errors.New("connection failed")},
+			errors.New("connection failed"),
+			cars,
+		},
+	}
 
-	cars, err = sc.GetCarsByOwner(tctx, "Peter")
-	assert.Nil(t, err)
-	assert.Equal(t, []*CarAsset{}, cars)
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			it := &mocks.StateQueryIterator{}
+			it.HasNextReturnsOnCall(0, true)
+			it.HasNextReturnsOnCall(1, false)
+			it.NextReturns(&queryresult.KV{Value: test.state.state}, nil)
 
-	it.HasNextReturns(true)
-	it.NextReturns(nil, fmt.Errorf("error getting next car"))
-	cars, err = sc.GetCarsByOwner(tctx, "Juan")
-	assert.EqualError(t, err, "error getting next car")
-	assert.Nil(t, cars)
+			stub := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stub)
 
+			stub.GetStateByRangeReturns(it, test.state.err)
+			sc := &SmartContract{}
+			cars, err := sc.GetCarsByOwner(tctx, test.owner)
+			fmt.Println(err)
+			assert.Equal(t, test.expectedErr, err)
+			assert.Equal(t, test.expectedCar, cars)
+		})
+	}
 }
 
 func TestGetCar(t *testing.T) {
-	stu := &mocks.ChaincodeStub{}
-	tctx := &mocks.TransactionContext{}
-	tctx.GetStubReturns(stu)
-
-	expectedCar := CarAsset{ID: "123"}
-	b, err := json.Marshal(expectedCar)
+	car := CarAsset{ID: "000", Owner: "Max", Brand: "Toyota"}
+	b, err := json.Marshal(car)
 	assert.Nil(t, err)
 
-	stu.GetStateReturns(b, nil)
-	sc := SmartContract{}
-	car, err := sc.GetCar(tctx, "")
-	assert.Nil(t, err)
-	assert.Equal(t, &expectedCar, car)
+	tests := []struct {
+		id          string
+		state       stateReturn
+		expectedErr error
+		expectedCar *CarAsset
+	}{
+		{
+			"000",
+			stateReturn{b, nil},
+			nil,
+			&car,
+		},
+		{
+			"000",
+			stateReturn{nil, errors.New("connection failed")},
+			errors.New("error getting car, connection failed"),
+			nil,
+		},
+		{
+			"000",
+			stateReturn{nil, nil},
+			errors.New("car does not exist ID: 000"),
+			nil,
+		},
+	}
 
-	stu.GetStateReturns(nil, fmt.Errorf("connection error"))
-	_, err = sc.GetCar(tctx, "")
-	assert.EqualError(t, err, "error getting car, connection error")
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			stu := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stu)
 
-	stu.GetStateReturns(nil, nil)
-	car, err = sc.GetCar(tctx, "000")
-	assert.EqualError(t, err, "car does not exist ID: 000")
-	assert.Nil(t, car)
+			stu.GetStateReturns(test.state.state, test.state.err)
+
+			sc := SmartContract{}
+			car, err := sc.GetCar(tctx, test.id)
+			assert.Equal(t, test.expectedErr, err)
+			assert.Equal(t, test.expectedCar, car)
+		})
+	}
 }
 
 func TestCreateCar(t *testing.T) {
-	stu := &mocks.ChaincodeStub{}
-	tctx := &mocks.TransactionContext{}
-	tctx.GetStubReturns(stu)
+	tests := []struct {
+		state       stateReturn
+		expectedErr error
+		car         CarAsset
+	}{
+		{
+			stateReturn{nil, nil},
+			nil,
+			CarAsset{ID: "11", Brand: "Toyota", Owner: "Peter"},
+		},
+		{
+			stateReturn{[]byte{}, nil},
+			errors.New("the car with id 11 already exist"),
+			CarAsset{ID: "11", Brand: "Toyota", Owner: "Peter"},
+		},
+		{
+			stateReturn{nil, errors.New("connection failed")},
+			errors.New("connection failed"),
+			CarAsset{ID: "11", Brand: "Toyota", Owner: "Peter"},
+		},
+		{
+			stateReturn{nil, nil},
+			errors.New("All fields are required"),
+			CarAsset{ID: "11", Brand: "Toyota"},
+		},
+		{
+			stateReturn{nil, nil},
+			errors.New("All fields are required"),
+			CarAsset{ID: "11", Owner: "Max"},
+		},
+		{
+			stateReturn{nil, nil},
+			errors.New("All fields are required"),
+			CarAsset{Brand: "Honda", Owner: "Max"},
+		},
+		{
+			stateReturn{nil, nil},
+			errors.New("All fields are required"),
+			CarAsset{ID: " ", Brand: " ", Owner: "Max"},
+		},
+	}
 
-	sc := SmartContract{}
-	err := sc.CreateCar(tctx, "", "", "")
-	assert.Nil(t, err)
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			stu := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stu)
 
-	stu.GetStateReturns([]byte{}, nil)
-	err = sc.CreateCar(tctx, "00", "0", "")
-	assert.EqualError(t, err, "the car with id 00 already exist")
-
-	stu.GetStateReturns(nil, fmt.Errorf("unable to process"))
-	err = sc.CreateCar(tctx, "00", "", "")
-	assert.EqualError(t, err, "unable to process")
-
+			sc := SmartContract{}
+			stu.GetStateReturns(test.state.state, test.state.err)
+			err := sc.CreateCar(tctx, test.car.ID, test.car.Brand, test.car.Owner)
+			assert.Equal(t, test.expectedErr, err)
+		})
+	}
 }
 
 func TestExistcar(t *testing.T) {

@@ -3,6 +3,7 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -160,6 +161,12 @@ func (s *SmartContract) CreateCar(ctx contractapi.TransactionContextInterface, i
 
 	if exist {
 		return fmt.Errorf("the car with id %s already exist", id)
+	}
+
+	if strings.TrimSpace(brand) == "" ||
+		strings.TrimSpace(id) == "" ||
+		strings.TrimSpace(owner) == "" {
+		return fmt.Errorf("All fields are required")
 	}
 
 	newCar := CarAsset{
