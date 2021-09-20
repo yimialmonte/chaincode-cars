@@ -228,3 +228,58 @@ func TestIsAbleToTransfer(t *testing.T) {
 		})
 	}
 }
+
+func TestTransferCart(t *testing.T) {
+	tests := []struct {
+		car         CarAsset
+		expectedErr error
+		newOwner    string
+	}{
+		{
+			CarAsset{
+				Brand:          "Toyota",
+				ID:             "123",
+				Owner:          "Max",
+				TransfersCount: 1,
+			},
+			nil,
+			"Peter",
+		},
+		{
+			CarAsset{
+				Brand:          "Toyota",
+				ID:             "123",
+				Owner:          "Max",
+				TransfersCount: 5,
+			},
+			errors.New("unable to process, total car transaction 5 exeed the limit"),
+			"Peter",
+		},
+		{
+			CarAsset{
+				Brand:          "Toyota",
+				ID:             "123",
+				Owner:          "Max",
+				TransfersCount: 1,
+			},
+			errors.New("unable to process transaction, car owner Max is equal to Max"),
+			"Max",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			stub := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stub)
+
+			bytes, err := json.Marshal(test.car)
+			require.NoError(t, err)
+
+			stub.GetStateReturns(bytes, nil)
+			sc := &SmartContract{}
+			err = sc.TransferCart(tctx, "", test.newOwner)
+			assert.Equal(t, test.expectedErr, err)
+		})
+	}
+}
