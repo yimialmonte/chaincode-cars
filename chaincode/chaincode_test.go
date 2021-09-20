@@ -29,6 +29,11 @@ type stateQueryIterator interface {
 	shim.StateQueryIteratorInterface
 }
 
+type stateReturn struct {
+	state []byte
+	err   error
+}
+
 func TestInitLedger(t *testing.T) {
 	stu := &mocks.ChaincodeStub{}
 	tctx := &mocks.TransactionContext{}
@@ -152,26 +157,41 @@ func TestCreateCar(t *testing.T) {
 }
 
 func TestExistcar(t *testing.T) {
-	stu := &mocks.ChaincodeStub{}
-	tctx := &mocks.TransactionContext{}
-	tctx.GetStubReturns(stu)
+	tests := []struct {
+		state         stateReturn
+		expectedFound bool
+		expectedErr   error
+	}{
+		{
+			stateReturn{[]byte{}, nil},
+			true,
+			nil,
+		},
+		{
+			stateReturn{nil, nil},
+			false,
+			nil,
+		},
+		{
+			stateReturn{nil, errors.New("Error occurs")},
+			false,
+			errors.New("Error occurs"),
+		},
+	}
 
-	sc := SmartContract{}
-	_, err := sc.ExistCar(tctx, "")
-	assert.Nil(t, err)
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test), func(t *testing.T) {
+			stu := &mocks.ChaincodeStub{}
+			tctx := &mocks.TransactionContext{}
+			tctx.GetStubReturns(stu)
 
-	stu.GetStateReturns([]byte{}, nil)
-	exist, _ := sc.ExistCar(tctx, "")
-	assert.Equal(t, exist, true)
-
-	stu.GetStateReturns(nil, nil)
-	exist, _ = sc.ExistCar(tctx, "")
-	assert.Equal(t, exist, false)
-
-	stu.GetStateReturns(nil, fmt.Errorf("unable to process"))
-	exist, err = sc.ExistCar(tctx, "")
-	assert.EqualError(t, err, "unable to process")
-	assert.Equal(t, exist, false)
+			sc := SmartContract{}
+			stu.GetStateReturns(test.state.state, test.state.err)
+			res, err := sc.ExistCar(tctx, "")
+			assert.Equal(t, test.expectedFound, res)
+			assert.Equal(t, test.expectedErr, err)
+		})
+	}
 }
 
 func TestIsAbleToTransfer(t *testing.T) {
