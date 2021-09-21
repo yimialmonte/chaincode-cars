@@ -152,7 +152,7 @@ func TestTransferCarOwner(t *testing.T) {
 			`{"id":"","owner"}`,
 			nil,
 			http.StatusBadRequest,
-			fmt.Sprintf("error decoding json\n"),
+			fmt.Sprintf("invalid character '}' after object key\n"),
 		},
 	}
 

@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -69,7 +68,10 @@ type TransferCarOwner struct {
 }
 
 func (g *TransferCarOwner) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	car, err := getCarFromRequest(r)
+	var car asset.Car
+	decoder := json.NewDecoder(r.Body)
+
+	err := decoder.Decode(&car)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -87,15 +89,4 @@ func (g *TransferCarOwner) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-}
-
-func getCarFromRequest(r *http.Request) (asset.Car, error) {
-	var car asset.Car
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&car)
-	if err != nil {
-		return car, fmt.Errorf("error decoding json")
-	}
-
-	return car, nil
 }
