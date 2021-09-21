@@ -5,8 +5,7 @@ import (
 )
 
 // Car ...
-type Car struct {
-}
+type Car struct{}
 
 // GetCars ...
 func (c *Car) GetCars() ([]*asset.Car, error) {
@@ -19,7 +18,7 @@ func (c *Car) GetCars() ([]*asset.Car, error) {
 // GetCarsByOwner ...
 func (c *Car) GetCarsByOwner(owner string) ([]*asset.Car, error) {
 	return []*asset.Car{
-		{ID: "02", Brand: "Homnda", Owner: "Max"},
+		{ID: "02", Brand: "Homnda", Owner: owner},
 	}, nil
 }
 
