@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"github.com/yimialmonte/chaincode-cars/asset"
 )
 
 // SmartContract ...
@@ -13,17 +14,9 @@ type SmartContract struct {
 	contractapi.Contract
 }
 
-// CarAsset ...
-type CarAsset struct {
-	ID             string `json:"id"`
-	Brand          string `json:"brand"`
-	Owner          string `json:"owner"`
-	TransfersCount int    `json:"transfersCount"`
-}
-
 // InitLedger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	cars := []CarAsset{
+	cars := []asset.Car{
 		{Brand: "Toyota", ID: "12", Owner: "Juan", TransfersCount: 0},
 		{Brand: "Honda", ID: "22", Owner: "Marcos", TransfersCount: 0},
 	}
@@ -44,14 +37,14 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 }
 
 // GetCars ...
-func (s *SmartContract) GetCars(ctx contractapi.TransactionContextInterface) ([]*CarAsset, error) {
+func (s *SmartContract) GetCars(ctx contractapi.TransactionContextInterface) ([]*asset.Car, error) {
 	res, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
 		return nil, err
 	}
 	defer res.Close()
 
-	var cars []*CarAsset
+	var cars []*asset.Car
 
 	for res.HasNext() {
 		car, err := res.Next()
@@ -59,7 +52,7 @@ func (s *SmartContract) GetCars(ctx contractapi.TransactionContextInterface) ([]
 			return nil, err
 		}
 
-		var carAsset CarAsset
+		var carAsset asset.Car
 		err = json.Unmarshal(car.Value, &carAsset)
 		if err != nil {
 			return nil, err
@@ -72,17 +65,17 @@ func (s *SmartContract) GetCars(ctx contractapi.TransactionContextInterface) ([]
 }
 
 // GetCarsByOwner
-func (s *SmartContract) GetCarsByOwner(ctx contractapi.TransactionContextInterface, owner string) ([]*CarAsset, error) {
+func (s *SmartContract) GetCarsByOwner(ctx contractapi.TransactionContextInterface, owner string) ([]*asset.Car, error) {
 	cars, err := s.GetCars(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(cars) == 0 {
-		return []*CarAsset{}, nil
+		return []*asset.Car{}, nil
 	}
 
-	var ownerCars []*CarAsset
+	var ownerCars []*asset.Car
 	for _, car := range cars {
 		if car.Owner == owner {
 			ownerCars = append(ownerCars, car)
@@ -115,7 +108,7 @@ func (s *SmartContract) TransferCart(ctx contractapi.TransactionContextInterface
 }
 
 // IsAbleToTransfer ...
-func (s *SmartContract) IsAbleToTransfer(car *CarAsset, newOwner string) (bool, error) {
+func (s *SmartContract) IsAbleToTransfer(car *asset.Car, newOwner string) (bool, error) {
 	if car == nil {
 		return false, fmt.Errorf("unable to process transaction, car does not exit")
 	}
@@ -133,7 +126,7 @@ func (s *SmartContract) IsAbleToTransfer(car *CarAsset, newOwner string) (bool, 
 }
 
 // GetCar ...
-func (s *SmartContract) GetCar(ctx contractapi.TransactionContextInterface, id string) (*CarAsset, error) {
+func (s *SmartContract) GetCar(ctx contractapi.TransactionContextInterface, id string) (*asset.Car, error) {
 	carJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return nil, fmt.Errorf("error getting car, %v", err)
@@ -143,7 +136,7 @@ func (s *SmartContract) GetCar(ctx contractapi.TransactionContextInterface, id s
 		return nil, fmt.Errorf("car does not exist ID: %s", id)
 	}
 
-	var car CarAsset
+	var car asset.Car
 	err = json.Unmarshal(carJSON, &car)
 	if err != nil {
 		return nil, err
@@ -169,7 +162,7 @@ func (s *SmartContract) CreateCar(ctx contractapi.TransactionContextInterface, i
 		return fmt.Errorf("All fields are required")
 	}
 
-	newCar := CarAsset{
+	newCar := asset.Car{
 		Brand: brand,
 		ID:    id,
 		Owner: owner,

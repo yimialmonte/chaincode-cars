@@ -8,21 +8,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/yimialmonte/chaincode-cars/chaincode"
+	"github.com/yimialmonte/chaincode-cars/asset"
 )
 
 type testCartStore struct {
 	called       int
-	carsResponse []*chaincode.CarAsset
+	carsResponse []*asset.Car
 	errResponse  error
 }
 
-func (t *testCartStore) GetCars() ([]*chaincode.CarAsset, error) {
+func (t *testCartStore) GetCars() ([]*asset.Car, error) {
 	t.called++
 	return t.carsResponse, t.errResponse
 }
 
-func (t *testCartStore) GetCarsByOwner(owner string) ([]*chaincode.CarAsset, error) {
+func (t *testCartStore) GetCarsByOwner(owner string) ([]*asset.Car, error) {
 	t.called++
 	return t.carsResponse, t.errResponse
 }
@@ -33,13 +33,13 @@ func (t *testCartStore) TransferCart(id, owner string) error {
 }
 func TestGetAllCars(t *testing.T) {
 	tests := []struct {
-		response     []*chaincode.CarAsset
+		response     []*asset.Car
 		expectedErr  error
 		expectedCode int
 		expectedRes  string
 	}{
 		{
-			[]*chaincode.CarAsset{
+			[]*asset.Car{
 				{ID: "000", Brand: "Honda", Owner: "Juan"},
 			},
 			nil,
@@ -47,13 +47,13 @@ func TestGetAllCars(t *testing.T) {
 			string(`[{"id":"000","brand":"Honda","owner":"Juan","transfersCount":0}]`),
 		},
 		{
-			[]*chaincode.CarAsset{},
+			[]*asset.Car{},
 			fmt.Errorf("internal server error"),
 			http.StatusInternalServerError,
 			fmt.Sprintf("internal server error\n"),
 		},
 		{
-			[]*chaincode.CarAsset{},
+			[]*asset.Car{},
 			nil,
 			http.StatusOK,
 			"[]",
@@ -79,13 +79,13 @@ func TestGetAllCars(t *testing.T) {
 
 func TestGetCarsOwner(t *testing.T) {
 	tests := []struct {
-		response     []*chaincode.CarAsset
+		response     []*asset.Car
 		expectedErr  error
 		expectedCode int
 		expectedRes  string
 	}{
 		{
-			[]*chaincode.CarAsset{
+			[]*asset.Car{
 				{ID: "000", Brand: "Toyota", Owner: "Max", TransfersCount: 10},
 			},
 			nil,
@@ -93,13 +93,13 @@ func TestGetCarsOwner(t *testing.T) {
 			string(`[{"id":"000","brand":"Toyota","owner":"Max","transfersCount":10}]`),
 		},
 		{
-			[]*chaincode.CarAsset{},
+			[]*asset.Car{},
 			nil,
 			http.StatusOK,
 			"[]",
 		},
 		{
-			[]*chaincode.CarAsset{},
+			[]*asset.Car{},
 			fmt.Errorf("internal server error"),
 			http.StatusInternalServerError,
 			fmt.Sprintf("internal server error\n"),

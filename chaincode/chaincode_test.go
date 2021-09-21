@@ -11,6 +11,7 @@ import (
 	"github.com/hyperledger/fabric-protos-go/ledger/queryresult"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yimialmonte/chaincode-cars/asset"
 	"github.com/yimialmonte/chaincode-cars/chaincode/mocks"
 )
 
@@ -65,21 +66,21 @@ func TestInitLedger(t *testing.T) {
 }
 
 func TestGetCars(t *testing.T) {
-	car := CarAsset{ID: "123", Owner: "Peter", Brand: "Honda"}
+	car := asset.Car{ID: "123", Owner: "Peter", Brand: "Honda"}
 	b, err := json.Marshal(car)
 	assert.Nil(t, err)
 
-	var cars []*CarAsset
+	var cars []*asset.Car
 
 	tests := []struct {
 		state       stateReturn
 		expectedErr error
-		expectedCar []*CarAsset
+		expectedCar []*asset.Car
 	}{
 		{
 			stateReturn{b, nil},
 			nil,
-			[]*CarAsset{&car},
+			[]*asset.Car{&car},
 		},
 		{
 			stateReturn{nil, errors.New("connection failed")},
@@ -109,21 +110,21 @@ func TestGetCars(t *testing.T) {
 }
 
 func TestGetCarsByOwner(t *testing.T) {
-	car := CarAsset{ID: "000", Owner: "Max", Brand: "Toyota"}
+	car := asset.Car{ID: "000", Owner: "Max", Brand: "Toyota"}
 	b, err := json.Marshal(car)
 	assert.Nil(t, err)
-	var cars []*CarAsset
+	var cars []*asset.Car
 	tests := []struct {
 		owner       string
 		state       stateReturn
 		expectedErr error
-		expectedCar []*CarAsset
+		expectedCar []*asset.Car
 	}{
 		{
 			"Max",
 			stateReturn{b, nil},
 			nil,
-			[]*CarAsset{&car},
+			[]*asset.Car{&car},
 		},
 		{
 			"Juan",
@@ -161,7 +162,7 @@ func TestGetCarsByOwner(t *testing.T) {
 }
 
 func TestGetCar(t *testing.T) {
-	car := CarAsset{ID: "000", Owner: "Max", Brand: "Toyota"}
+	car := asset.Car{ID: "000", Owner: "Max", Brand: "Toyota"}
 	b, err := json.Marshal(car)
 	assert.Nil(t, err)
 
@@ -169,7 +170,7 @@ func TestGetCar(t *testing.T) {
 		id          string
 		state       stateReturn
 		expectedErr error
-		expectedCar *CarAsset
+		expectedCar *asset.Car
 	}{
 		{
 			"000",
@@ -211,42 +212,42 @@ func TestCreateCar(t *testing.T) {
 	tests := []struct {
 		state       stateReturn
 		expectedErr error
-		car         CarAsset
+		car         asset.Car
 	}{
 		{
 			stateReturn{nil, nil},
 			nil,
-			CarAsset{ID: "11", Brand: "Toyota", Owner: "Peter"},
+			asset.Car{ID: "11", Brand: "Toyota", Owner: "Peter"},
 		},
 		{
 			stateReturn{[]byte{}, nil},
 			errors.New("the car with id 11 already exist"),
-			CarAsset{ID: "11", Brand: "Toyota", Owner: "Peter"},
+			asset.Car{ID: "11", Brand: "Toyota", Owner: "Peter"},
 		},
 		{
 			stateReturn{nil, errors.New("connection failed")},
 			errors.New("connection failed"),
-			CarAsset{ID: "11", Brand: "Toyota", Owner: "Peter"},
+			asset.Car{ID: "11", Brand: "Toyota", Owner: "Peter"},
 		},
 		{
 			stateReturn{nil, nil},
 			errors.New("All fields are required"),
-			CarAsset{ID: "11", Brand: "Toyota"},
+			asset.Car{ID: "11", Brand: "Toyota"},
 		},
 		{
 			stateReturn{nil, nil},
 			errors.New("All fields are required"),
-			CarAsset{ID: "11", Owner: "Max"},
+			asset.Car{ID: "11", Owner: "Max"},
 		},
 		{
 			stateReturn{nil, nil},
 			errors.New("All fields are required"),
-			CarAsset{Brand: "Honda", Owner: "Max"},
+			asset.Car{Brand: "Honda", Owner: "Max"},
 		},
 		{
 			stateReturn{nil, nil},
 			errors.New("All fields are required"),
-			CarAsset{ID: " ", Brand: " ", Owner: "Max"},
+			asset.Car{ID: " ", Brand: " ", Owner: "Max"},
 		},
 	}
 
@@ -304,25 +305,25 @@ func TestExistcar(t *testing.T) {
 
 func TestIsAbleToTransfer(t *testing.T) {
 	tests := []struct {
-		car            *CarAsset
+		car            *asset.Car
 		newOwner       string
 		expectedErr    error
 		expectedResult bool
 	}{
 		{
-			&CarAsset{Owner: "Juan", TransfersCount: 3},
+			&asset.Car{Owner: "Juan", TransfersCount: 3},
 			"Max",
 			errors.New(fmt.Sprintf("unable to process, total car transaction %d exeed the limit", 3)),
 			false,
 		},
 		{
-			&CarAsset{Owner: "Juan", TransfersCount: 1},
+			&asset.Car{Owner: "Juan", TransfersCount: 1},
 			"Juan",
 			errors.New(fmt.Sprintf("unable to process transaction, car owner %s is equal to %s", "Juan", "Juan")),
 			false,
 		},
 		{
-			&CarAsset{Owner: "Peter", TransfersCount: 3},
+			&asset.Car{Owner: "Peter", TransfersCount: 3},
 			"Peter",
 			errors.New(fmt.Sprintf("unable to process transaction, car owner %s is equal to %s", "Peter", "Peter")),
 			false,
@@ -334,13 +335,13 @@ func TestIsAbleToTransfer(t *testing.T) {
 			false,
 		},
 		{
-			&CarAsset{Owner: "Ana", TransfersCount: 1},
+			&asset.Car{Owner: "Ana", TransfersCount: 1},
 			"Peter",
 			nil,
 			true,
 		},
 		{
-			&CarAsset{Owner: "Mar", TransfersCount: 0},
+			&asset.Car{Owner: "Mar", TransfersCount: 0},
 			"Jackson",
 			nil,
 			true,
@@ -359,12 +360,12 @@ func TestIsAbleToTransfer(t *testing.T) {
 
 func TestTransferCart(t *testing.T) {
 	tests := []struct {
-		car         CarAsset
+		car         asset.Car
 		expectedErr error
 		newOwner    string
 	}{
 		{
-			CarAsset{
+			asset.Car{
 				Brand:          "Toyota",
 				ID:             "123",
 				Owner:          "Max",
@@ -374,7 +375,7 @@ func TestTransferCart(t *testing.T) {
 			"Peter",
 		},
 		{
-			CarAsset{
+			asset.Car{
 				Brand:          "Toyota",
 				ID:             "123",
 				Owner:          "Max",
@@ -384,7 +385,7 @@ func TestTransferCart(t *testing.T) {
 			"Peter",
 		},
 		{
-			CarAsset{
+			asset.Car{
 				Brand:          "Toyota",
 				ID:             "123",
 				Owner:          "Max",

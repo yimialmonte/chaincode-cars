@@ -7,15 +7,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yimialmonte/chaincode-cars/chaincode"
-
 	"github.com/gorilla/mux"
+	"github.com/yimialmonte/chaincode-cars/asset"
 )
 
 // CarStore ...
 type CarStore interface {
-	GetCars() ([]*chaincode.CarAsset, error)
-	GetCarsByOwner(owner string) ([]*chaincode.CarAsset, error)
+	GetCars() ([]*asset.Car, error)
+	GetCarsByOwner(owner string) ([]*asset.Car, error)
 	TransferCart(id, owner string) error
 }
 
@@ -90,8 +89,8 @@ func (g *TransferCarOwner) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func getCarFromRequest(r *http.Request) (chaincode.CarAsset, error) {
-	var car chaincode.CarAsset
+func getCarFromRequest(r *http.Request) (asset.Car, error) {
+	var car asset.Car
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&car)
 	if err != nil {
