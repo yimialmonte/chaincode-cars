@@ -8,7 +8,9 @@ REST API for making transaction inside the network
 Create a Hyperledger Fabric Network.\
 Connect REST API with the network.
 
-## REST API
+## Run the API
+`docker build . -t api` \
+`docker run -it -p 8080:8080 api`
 
 ## Get list of cars
 
@@ -16,16 +18,14 @@ Connect REST API with the network.
 
 `GET /cars/`
 
-    curl -i -H 'Accept: application/json' http://localhost:8080/cars/
+    curl -i -H 'Accept: application/json' http://localhost:8080/cars
 
 ### Response
 
     HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:30 GMT
-    Status: 200 OK
-    Connection: close
     Content-Type: application/json
-    Content-Length: 2
+    Date: Tue, 21 Sep 2021 15:41:52 GMT
+    Content-Length: 127
 
     [
     {
@@ -42,7 +42,37 @@ Connect REST API with the network.
     }
     ]
 
+`GET /cars/owner/{name}`
 
+    curl -i -H 'Accept: application/json' http://localhost:8080/cars/owner/Max
+
+### Response
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Date: Tue, 21 Sep 2021 15:40:58 GMT
+    Content-Length: 63
+
+    [
+    {
+        "id": "02",
+        "brand": "Homnda",
+        "owner": "Max",
+        "transfersCount": 0
+    }
+    ]
+
+`POST /thing/`
+
+    curl -i -H 'Accept: application/json' -d '{"id":"002","owner":"max"}' http://localhost:8080/cars
+
+### Response
+
+    HTTP/1.1 201 Created
+    Date: Tue, 21 Sep 2021 15:40:02 GMT
+    Content-Length: 0
+
+    
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
