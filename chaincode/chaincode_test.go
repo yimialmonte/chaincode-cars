@@ -313,7 +313,7 @@ func TestIsAbleToTransfer(t *testing.T) {
 		{
 			&asset.Car{Owner: "Juan", TransfersCount: 3},
 			"Max",
-			errors.New(fmt.Sprintf("unable to process, total car transaction %d exeed the limit", 3)),
+			errors.New(fmt.Sprintf("unable to process, total car transaction %d exceed the limit", 3)),
 			false,
 		},
 		{
@@ -331,7 +331,7 @@ func TestIsAbleToTransfer(t *testing.T) {
 		{
 			nil,
 			"Peter",
-			errors.New("unable to process transaction, car does not exit"),
+			errors.New("unable to process transaction, car does not exist"),
 			false,
 		},
 		{
@@ -381,7 +381,7 @@ func TestTransferCart(t *testing.T) {
 				Owner:          "Max",
 				TransfersCount: 5,
 			},
-			errors.New("unable to process, total car transaction 5 exeed the limit"),
+			errors.New("unable to process, total car transaction 5 exceed the limit"),
 			"Peter",
 		},
 		{

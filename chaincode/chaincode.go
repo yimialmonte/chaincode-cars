@@ -110,16 +110,16 @@ func (s *SmartContract) TransferCart(ctx contractapi.TransactionContextInterface
 // IsAbleToTransfer ...
 func (s *SmartContract) IsAbleToTransfer(car *asset.Car, newOwner string) (bool, error) {
 	if car == nil {
-		return false, fmt.Errorf("unable to process transaction, car does not exit")
+		return false, fmt.Errorf("unable to process transaction, car does not exist")
 	}
 
 	if car.Owner == newOwner {
 		return false, fmt.Errorf("unable to process transaction, car owner %s is equal to %s", car.Owner, newOwner)
 	}
 
-	totalTransAllwed := 3
-	if car.TransfersCount >= totalTransAllwed {
-		return false, fmt.Errorf("unable to process, total car transaction %d exeed the limit", car.TransfersCount)
+	maxTransfert := 3
+	if car.TransfersCount >= maxTransfert {
+		return false, fmt.Errorf("unable to process, total car transaction %d exceed the limit", car.TransfersCount)
 	}
 
 	return true, nil
